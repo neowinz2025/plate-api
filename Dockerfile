@@ -1,4 +1,3 @@
-
 FROM node:20-bullseye
 
 RUN apt-get update && apt-get install -y \
@@ -11,9 +10,12 @@ RUN apt-get update && apt-get install -y \
 RUN pip3 install pytesseract
 
 WORKDIR /app
+
 COPY package*.json ./
 RUN npm install
+
 COPY . .
 
 EXPOSE 3000
+
 CMD ["npm", "start"]
