@@ -1,3 +1,4 @@
+
 import express from "express";
 import multer from "multer";
 import { exec } from "child_process";
@@ -6,29 +7,34 @@ import fs from "fs";
 const app = express();
 const upload = multer({ dest: "uploads/" });
 
-app.get("/", (_, res) => {
-  res.send("🚀 Plate OCR API online");
+const API_KEY = "dfmilhas123";
+
+app.use((req, res, next) => {
+  if (req.path === "/") return next();
+
+  const token = req.headers.authorization?.replace("Token ", "");
+  if (!token || token !== API_KEY) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
 });
 
-app.post("/read-plate", upload.single("image"), (req, res) => {
+app.get("/", (_, res) => {
+  res.send("🚀 Plate Recognizer Style API running");
+});
+
+app.post("/v1/plate-reader", upload.single("image"), (req, res) => {
   if (!req.file) {
-    return res.status(400).json({ error: "Envie uma imagem no campo 'image'" });
+    return res.status(400).json({ error: "image file required" });
   }
 
-  const filePath = req.file.path;
+  const file = req.file.path;
 
-  exec(`tesseract ${filePath} stdout -l eng`, (err, stdout) => {
-    fs.unlinkSync(filePath);
-
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-
-    const plate = stdout.replace(/\n/g, "").trim();
-
-    res.json({ plate });
+  exec(`python3 detect.py ${file}`, (err, stdout) => {
+    fs.unlinkSync(file);
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(JSON.parse(stdout));
   });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Servidor rodando na porta", PORT));
+app.listen(process.env.PORT || 3000);
